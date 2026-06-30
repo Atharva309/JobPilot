@@ -83,7 +83,7 @@ def analyze_with_claude(scraped_text, pdf_b64):
     global client
     try:
         if not client:
-            client = Anthropic()
+            client = Anthropic(default_headers={"anthropic-beta": "pdfs-2024-09-25"})
         
         message = client.messages.create(
             model=MODEL_NAME,
@@ -117,7 +117,7 @@ def analyze_with_claude(scraped_text, pdf_b64):
         return json.loads(content)
     except Exception as e:
         print(f"Claude API Error: {e}")
-        return None
+        return e
 
 def process_jobs():
     """Scan ALL pending companies."""
@@ -162,8 +162,8 @@ def process_jobs():
         # 2. Claude API
         results = analyze_with_claude(text, pdf_b64)
         
-        if results is None:
-            db.set_job_status(row_id, "Error parsing from Claude")
+        if isinstance(results, Exception):
+            db.set_job_status(row_id, f"Error: {results}")
             continue
         
         # 3. Filter out already-applied jobs
@@ -227,9 +227,9 @@ def process_single_company(company_name):
     # Claude API
     results = analyze_with_claude(text, pdf_b64)
     
-    if results is None:
-        db.set_job_status(row_id, "Error parsing from Claude")
-        return {"status": "error", "message": f"Claude failed for {company_name}"}
+    if isinstance(results, Exception):
+        db.set_job_status(row_id, f"Error: {results}")
+        return {"status": "error", "message": f"Claude failed: {results}"}
     
     if len(results) == 0:
         db.set_job_status(row_id, "No matches found")
