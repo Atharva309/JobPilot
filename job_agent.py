@@ -9,7 +9,7 @@ from anthropic import Anthropic
 import db
 
 PDF_FILE = "portfolio.pdf"
-MODEL_NAME = "claude-sonnet-4-20250514"
+MODEL_NAME = "claude-3-5-sonnet-20241022"
 
 # Will be initialized inside process_jobs
 client = None
