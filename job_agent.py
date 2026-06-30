@@ -81,40 +81,62 @@ def scrape_url(url):
 
 def analyze_with_claude(scraped_text, pdf_b64):
     global client
+    
+    models = [
+        "claude-3-7-sonnet-20250219",
+        "claude-3-5-sonnet-latest",
+        "claude-3-5-sonnet-20241022",
+        "claude-3-5-sonnet-20240620"
+    ]
+    
     try:
         if not client:
             client = Anthropic(default_headers={"anthropic-beta": "pdfs-2024-09-25"})
         
-        message = client.messages.create(
-            model=MODEL_NAME,
-            max_tokens=1000,
-            system=SYSTEM_PROMPT,
-            messages=[
-                {
-                    "role": "user",
-                    "content": [
+        last_error = None
+        for model in models:
+            try:
+                message = client.messages.create(
+                    model=model,
+                    max_tokens=1000,
+                    system=SYSTEM_PROMPT,
+                    messages=[
                         {
-                            "type": "document",
-                            "source": {
-                                "type": "base64",
-                                "media_type": "application/pdf",
-                                "data": pdf_b64
-                            }
-                        },
-                        {
-                            "type": "text",
-                            "text": f"Scraped career page text for analysis:\n\n{scraped_text}"
+                            "role": "user",
+                            "content": [
+                                {
+                                    "type": "document",
+                                    "source": {
+                                        "type": "base64",
+                                        "media_type": "application/pdf",
+                                        "data": pdf_b64
+                                    }
+                                },
+                                {
+                                    "type": "text",
+                                    "text": f"Scraped career page text for analysis:\n\n{scraped_text}"
+                                }
+                            ]
                         }
                     ]
-                }
-            ]
-        )
-        content = message.content[0].text.strip()
-        start_idx = content.find('[')
-        end_idx = content.rfind(']')
-        if start_idx != -1 and end_idx != -1:
-            content = content[start_idx:end_idx+1]
-        return json.loads(content)
+                )
+                content = message.content[0].text.strip()
+                start_idx = content.find('[')
+                end_idx = content.rfind(']')
+                if start_idx != -1 and end_idx != -1:
+                    content = content[start_idx:end_idx+1]
+                return json.loads(content)
+            except Exception as e:
+                error_str = str(e)
+                last_error = e
+                # Only retry if it's a 404 model not found
+                if "404" in error_str and "model" in error_str:
+                    print(f"Model {model} not found, trying next...")
+                    continue
+                else:
+                    return e
+                    
+        return last_error
     except Exception as e:
         print(f"Claude API Error: {e}")
         return e
