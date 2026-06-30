@@ -83,13 +83,20 @@ def analyze_with_claude(scraped_text, pdf_text):
     global client
     
     models = [
-        "claude-3-5-haiku-20241022",
+        "claude-3-5-sonnet-20241022",
+        "claude-3-5-sonnet-20240620",
+        "claude-3-5-sonnet-latest",
+        "claude-3-sonnet-20240229",
+        "claude-3-opus-20240229",
         "claude-3-haiku-20240307",
-        "claude-4-6-sonnet-20260228",
-        "claude-4-sonnet-latest",
-        "claude-4-sonnet-20250514",
+        "claude-3-5-haiku-20241022",
+        "claude-3-5-haiku-latest",
         "claude-3-7-sonnet-20250219",
-        "claude-3-5-sonnet-latest"
+        "claude-4-sonnet-20250514",
+        "claude-4-sonnet-latest",
+        "claude-4-6-sonnet-20260228",
+        "claude-2.1",
+        "claude-2.0"
     ]
     
     try:
