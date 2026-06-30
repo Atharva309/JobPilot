@@ -79,10 +79,12 @@ def scrape_url(url):
     except Exception as e:
         return None
 
-def analyze_with_claude(scraped_text, pdf_b64):
+def analyze_with_claude(scraped_text, pdf_text):
     global client
     
     models = [
+        "claude-3-5-haiku-20241022",
+        "claude-3-haiku-20240307",
         "claude-4-6-sonnet-20260228",
         "claude-4-sonnet-latest",
         "claude-4-sonnet-20250514",
@@ -92,7 +94,7 @@ def analyze_with_claude(scraped_text, pdf_b64):
     
     try:
         if not client:
-            client = Anthropic(default_headers={"anthropic-beta": "pdfs-2024-09-25"})
+            client = Anthropic()
         
         last_error = None
         for model in models:
@@ -106,16 +108,8 @@ def analyze_with_claude(scraped_text, pdf_b64):
                             "role": "user",
                             "content": [
                                 {
-                                    "type": "document",
-                                    "source": {
-                                        "type": "base64",
-                                        "media_type": "application/pdf",
-                                        "data": pdf_b64
-                                    }
-                                },
-                                {
                                     "type": "text",
-                                    "text": f"Scraped career page text for analysis:\n\n{scraped_text}"
+                                    "text": f"Candidate Resume:\n\n{pdf_text}\n\nScraped career page text for analysis:\n\n{scraped_text}"
                                 }
                             ]
                         }
@@ -152,8 +146,14 @@ def process_jobs():
     if not os.path.exists(PDF_FILE):
         return {"status": "error", "message": f"{PDF_FILE} not found."}
     
+    import PyPDF2
+    pdf_text = ""
     with open(PDF_FILE, "rb") as f:
-        pdf_b64 = base64.b64encode(f.read()).decode("utf-8")
+        reader = PyPDF2.PdfReader(f)
+        for page in reader.pages:
+            text = page.extract_text()
+            if text:
+                pdf_text += text + "\n"
     
     rows = db.get_company_rows_for_scan()
     
@@ -183,7 +183,7 @@ def process_jobs():
             continue
         
         # 2. Claude API
-        results = analyze_with_claude(text, pdf_b64)
+        results = analyze_with_claude(text, pdf_text)
         
         if isinstance(results, Exception):
             db.set_job_status(row_id, f"Error: {results}")
@@ -219,8 +219,14 @@ def process_single_company(company_name):
     if not os.path.exists(PDF_FILE):
         return {"status": "error", "message": f"{PDF_FILE} not found."}
     
+    import PyPDF2
+    pdf_text = ""
     with open(PDF_FILE, "rb") as f:
-        pdf_b64 = base64.b64encode(f.read()).decode("utf-8")
+        reader = PyPDF2.PdfReader(f)
+        for page in reader.pages:
+            text = page.extract_text()
+            if text:
+                pdf_text += text + "\n"
     
     row_info = db.get_company_row_for_single_scan(company_name)
     
@@ -247,8 +253,7 @@ def process_single_company(company_name):
         db.set_job_status(row_id, "Failed to scrape")
         return {"status": "error", "message": f"Failed to scrape {company_name}"}
     
-    # Claude API
-    results = analyze_with_claude(text, pdf_b64)
+    results = analyze_with_claude(text, pdf_text)
     
     if isinstance(results, Exception):
         db.set_job_status(row_id, f"Error: {results}")
