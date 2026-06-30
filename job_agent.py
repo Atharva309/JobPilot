@@ -83,10 +83,11 @@ def analyze_with_claude(scraped_text, pdf_b64):
     global client
     
     models = [
+        "claude-4-6-sonnet-20260228",
+        "claude-4-sonnet-latest",
+        "claude-4-sonnet-20250514",
         "claude-3-7-sonnet-20250219",
-        "claude-3-5-sonnet-latest",
-        "claude-3-5-sonnet-20241022",
-        "claude-3-5-sonnet-20240620"
+        "claude-3-5-sonnet-latest"
     ]
     
     try:
